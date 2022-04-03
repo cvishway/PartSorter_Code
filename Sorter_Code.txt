@@ -1,0 +1,173 @@
+
+#include <Wire.h>  
+#include <EVShield.h>  
+#include <EVs_NXTLight.h>  
+#include <EVs_SumoEyes.h>  
+
+EVShield     evshield(0x34,0x36);  EVs_NXTLight light;  EVs_SumoEyes seyes;  
+
+/***********************************************************************/  
+void setup()  
+{ 	  
+  evshield.init();  
+  evshield.bank_a.motorReset();  
+   
+  evshield.init(SH_HardwareI2C);  
+  seyes.init(&evshield, SH_BAS1);  
+  light.init(&evshield, SH_BAS2);  
+   
+  Serial.begin(115200);  
+
+  light.setReflected();  
+  seyes.setLongRange();  
+}  
+/***********************************************************************/  
+void loop()  
+{  
+  uint16_t light1,seyes1;  
+  boolean blockdetected,keepSensing;  
+
+   
+  while(true)  
+    {  
+ 	  
+        seyes1 = seyes.readRaw();  
+        if(seyes1<900)  
+        {  
+          seyes1 = 1;  
+        }  
+        else  
+        {  
+          seyes1 = 0;  
+        }  
+        printSumoSensorReading(seyes1);  
+     
+ 	  
+       if(seyes1==1)  
+        {  
+          keepSensing = true;  
+            while(keepSensing)  
+            {  
+              light1 = light.readRaw();  
+              light1 = (light1)/10;  
+              printLightSensorReading(light1);                delay(500);  
+ 	  
+              if(light1>70 && light1<80)  
+                {  
+                  putInBlueBucket();  
+                  keepSensing = false;  
+                }  
+              if(light1>60 && light1<70)  
+                {  
+                  putInRedBucket();  
+                  keepSensing = false;  
+                }  
+            }  
+            seyes1=0; 	  
+        }  
+    }  
+}  
+/*******************************************/  
+/*   
+ *  This sub-routine prints the light sensor reading.  
+ */  
+void printLightSensorReading(uint16_t light1)  
+{  
+  Serial.print('\n');  
+  Serial.print("Light Sensor: ");  
+  Serial.print(light1);  
+  Serial.print('\n');  
+}  
+/*******************************************/  
+/*   
+ *  This sub-routine prints the sumo sensor reading.  
+ */  
+void printSumoSensorReading(uint16_t seyes1)  
+{  
+  Serial.print('\n');  
+  Serial.print("Sumo Eyes Sensor: ");  
+    if(seyes1 == 0)  
+    {  
+      Serial.print("No Block.");  
+    }  
+    else  
+    {  
+      Serial.print("Block Detected!");  
+    }  
+  Serial.print('\n');  
+}  
+/*******************************************/  
+
+/*  
+ * This sub-routine flashes the LED red if   
+ * a red block is detected. It then excecutes the motor  
+ * to hit the red block in the red bin.   
+*/  
+void putInRedBucket()  
+{  
+  evshield.bank_a.ledSetRGB(255,0,0);  
+       delay(1000);  
+       evshield.bank_a.ledSetRGB(0,0,0);  
+       delay(1000);  
+ 	  
+  evshield.bank_a.motorRunDegrees(SH_Motor_1,SH_Direction_Reverse, 	  
+ 	80, 40, SH_Completion_Wait_For, 	//50 is the speed , //40 is the  
+degrees  
+                                       SH_Next_Action_BrakeHold);  
+  delay(2000);  
+  evshield.bank_a.motorRunDegrees(SH_Motor_1,SH_Direction_Forward, 	  
+ 	60, 30, SH_Completion_Wait_For, 	//50 is the speeed , //40 is the  
+degrees  
+                                       SH_Next_Action_BrakeHold);  
+}  
+/*******************************************/  
+/*  
+ * This sub-routine flashes the LED blue if   
+ * a blue block is detected. It then excecutes the motor  
+ * to hit the blue block in the blue bin.  
+*/  
+void putInBlueBucket()  
+{  
+  evshield.bank_a.ledSetRGB(0,0,255);  
+       delay(1000);  
+       evshield.bank_a.ledSetRGB(0,0,0);  
+       delay(1000);  
+ 	  
+  evshield.bank_a.motorRunDegrees(SH_Motor_1,SH_Direction_Forward, 	  
+ 	70, 40, SH_Completion_Wait_For, 	//50 is the speeed , //40 is the  
+degrees  
+                                       SH_Next_Action_BrakeHold);  
+
+
+    delay(2000);  
+  evshield.bank_a.motorRunDegrees(SH_Motor_1,SH_Direction_Reverse, 	  
+ 	60, 41, SH_Completion_Wait_For, 	//50 is the speeed , //40 is the  
+degrees  
+                                       SH_Next_Action_BrakeHold);  
+}  
+/*******************************************/  
+/*  
+ * This sub-routine flashes LED 3 times to   
+ * indicate a detected block.  
+ */  
+void detectBlock()  
+{  
+  evshield.ledSetRGB(255,255,255);  
+  delay(500);  
+  evshield.ledSetRGB(0,0,0);  
+  delay(500);  
+  evshield.ledSetRGB(255,255,255);  
+  delay(500);  
+  evshield.ledSetRGB(0,0,0);  
+  delay(500);  
+  evshield.ledSetRGB(255,255,255);  
+  delay(500);  
+  evshield.ledSetRGB(0,0,0);  
+  delay(500);  
+  evshield.ledSetRGB(255,255,255);  
+  delay(500);  
+  evshield.ledSetRGB(0,0,0);  
+  delay(500);   
+}  
+ 	  
+
